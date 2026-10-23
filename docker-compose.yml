@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  oop-renewed:
+    image: oop-renewed:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oop-renewed
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Port on which the Hono server listens
+      - PORT=3000
+      
+      # Primary currency for dashboard KPI summaries (e.g., PLN, EUR, USD)
+      - DEFAULT_CURRENCY=PLN
+      
+      # Synology Host Timezone (ensures local midnight renewals match your day)
+      - TZ=Europe/Warsaw
+      
+      # Telegram Bot Token from @BotFather
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      
+      # Restrict bot to your private Telegram user/chat ID (retrieve via @userinfobot)
+      - ALLOWED_TELEGRAM_CHAT_ID=${ALLOWED_TELEGRAM_CHAT_ID:-}
+      
+      # Internal path inside container to SQLite database
+      - DB_PATH=/app/data/radar.db
+    volumes:
+      # Synology NAS persistent volume bind mount:
+      # Maps local NAS folder (/volume1/docker/oop-renewed/data) to container /app/data
+      - /volume1/docker/oop-renewed/data:/app/data
+    deploy:
+      resources:
+        limits:
+          # Keep process lightweight for low-power Synology hardware
+          memory: 150M
+        reservations:
+          memory: 40M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
